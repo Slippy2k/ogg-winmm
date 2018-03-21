@@ -81,18 +81,16 @@ int player_main()
             updateTrack = 0;
         }
 
-        //stop if at end of 'playlist'
+        //return at the top of the playlist if at the last track
         //note "last" track is NON-inclusive
 		if (current == last)
 		{
-			playing = 0;
+			current = first;
 		}
-        //try to play song
-        else
-        {
-            dprintf("  Next track: %s\r\n", tracks[current].path);
-            playing = plr_play(tracks[current].path);
-        }
+
+		//try to play song
+		dprintf("  Next track: %s\r\n", tracks[current].path);
+		playing = plr_play(tracks[current].path);
 
         while (1)
         {
@@ -631,6 +629,7 @@ MMRESULT WINAPI fake_auxGetVolume(UINT uDeviceID, LPDWORD lpdwVolume)
 
 MMRESULT WINAPI fake_auxSetVolume(UINT uDeviceID, DWORD dwVolume)
 {
+	/*
     static DWORD oldVolume = -1;
 
     dprintf("fake_auxSetVolume(uDeviceId=%08X, dwVolume=%08X)\r\n", uDeviceID, dwVolume);
@@ -649,6 +648,6 @@ MMRESULT WINAPI fake_auxSetVolume(UINT uDeviceID, DWORD dwVolume)
     dprintf("    right: %ud (%04X)\n", right, right);
 
     plr_volume((left / 65535.0f) * 100);
-
+	*/
     return MMSYSERR_NOERROR;
 }
