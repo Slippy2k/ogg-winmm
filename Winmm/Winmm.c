@@ -51,6 +51,7 @@ FILE *fh = NULL;
 #define dprintf(...)
 #endif
 
+int firstSetVolumeCommand = 1;
 int playing = 0;
 int updateTrack = 0;
 int closed = 0;
@@ -65,9 +66,11 @@ static struct play_info info = { -1, -1 };
 
 int player_main()
 {
-    int first;
-    int last;
-    int current;
+    int first = 0;
+    int last = 0;
+    int current = 0;
+	int lastPlayedTrack = 0;
+	int mustLoop = 0;
 
     while (!closed)
     {
@@ -81,16 +84,36 @@ int player_main()
             updateTrack = 0;
         }
 
-        //return at the top of the playlist if at the last track
-        //note "last" track is NON-inclusive
+		//return at the top of the playlist if at the last track
+		//note "last" track is NON-inclusive
 		if (current == last)
 		{
-			current = first;
+			mustLoop = 1;
 		}
 
 		//try to play song
 		dprintf("  Next track: %s\r\n", tracks[current].path);
-		playing = plr_play(tracks[current].path);
+
+		if (mustLoop == 1)
+		{
+			if (plr_pump() == 0) //done playing song
+			{
+				current = lastPlayedTrack;
+				playing = plr_play(tracks[current].path);
+				dprintf("Track playback looped (restarted) : %s\r\n", tracks[current].path);
+			}
+			mustLoop = 0;
+		}
+		else if (lastPlayedTrack != current)
+		{
+			playing = plr_play(tracks[current].path);
+			lastPlayedTrack = current;
+			dprintf("Track playback started :  %s\r\n", tracks[current].path)
+		}
+		else
+		{
+			dprintf("Track %s playback NOT started : already playing it ! \r\n", tracks[current].path)
+		}
 
         while (1)
         {
@@ -103,8 +126,8 @@ int player_main()
             if (!playing) //MCI_STOP
             {
 
-                plr_stop(); //end playback
-                SuspendThread(player); //pause thread until next MCI_PLAY
+                //plr_stop(); //end playback
+                //SuspendThread(player); //pause thread until next MCI_PLAY
             }
 
 			if (plr_pump() == 0) //done playing song
@@ -629,7 +652,13 @@ MMRESULT WINAPI fake_auxGetVolume(UINT uDeviceID, LPDWORD lpdwVolume)
 
 MMRESULT WINAPI fake_auxSetVolume(UINT uDeviceID, DWORD dwVolume)
 {
-	/*
+	if (firstSetVolumeCommand == 1)
+	{
+		firstSetVolumeCommand = 0;
+		//avoid buggy command sent by Gex3D to set the music volume at 0
+		return MMSYSERR_NOERROR;
+	}
+
     static DWORD oldVolume = -1;
 
     dprintf("fake_auxSetVolume(uDeviceId=%08X, dwVolume=%08X)\r\n", uDeviceID, dwVolume);
@@ -648,6 +677,6 @@ MMRESULT WINAPI fake_auxSetVolume(UINT uDeviceID, DWORD dwVolume)
     dprintf("    right: %ud (%04X)\n", right, right);
 
     plr_volume((left / 65535.0f) * 100);
-	*/
+
     return MMSYSERR_NOERROR;
 }
